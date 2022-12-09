@@ -1,0 +1,50 @@
+﻿@page "/fetchdata"
+
+@using MauiApp1.Data
+@using MauiApp1.Models;
+@using MauiApp1.Services;
+@inject IAppService _appService;
+
+<h1>Öğrenci Listesi</h1>
+
+
+
+@if (Students == null)
+{
+	<p><em>Loading...</em></p>
+}
+else
+{
+	<table class="table">
+		<thead>
+			<tr>
+				<th>İsim</th>
+				<th>Soyisim</th>
+				<th>Email</th>
+			
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var student in Students)
+			{
+				<tr>
+					<td>@student.FirstName</td>
+					<td>@student.LastName</td>
+					<td>@student.Email</td>
+					
+				
+				</tr>
+			}
+		</tbody>
+	</table>
+}
+
+@code {
+
+	private List<StudentModel> Students;
+
+	protected override async Task OnInitializedAsync()
+	{
+		Students = await _appService.GetAllStudents();
+	}
+}

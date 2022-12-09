@@ -1,0 +1,154 @@
+﻿@page "/register"
+@using MauiApp1.Models;
+@using MauiApp1.Services;
+@inject IAppService _appService;
+
+<h3>Kayıt Ol</h3>
+
+<EditForm Model="@registerModel" OnValidSubmit="Submit">
+    <DataAnnotationsValidator/>
+
+    <img src="@_userAvatar" @onclick="DisplayAction" height="50" width="50" class="rounded-circle" />
+
+    <div class="form-group">
+        <label>İsim</label>
+        <input class="form-control" @bind-value="@registerModel.FirstName" placeholder="İsminizi giriniz.." />
+        <ValidationMessage For="@(()=> registerModel.FirstName)" />
+    </div>
+
+    <div class="form-group">
+        <label>Soyisim</label>
+        <input class="form-control" @bind-value="@registerModel.LastName" placeholder="Soyisminizi giriniz.." />
+        <ValidationMessage For="@(()=> registerModel.LastName)" />
+    </div>
+
+    <div class="mt-2 form-group">
+        <label>Cinsiyet</label>
+        <div class="d-flex flex-row">
+            <div class="col-4 d-flex justify-content-between">
+                <div class="form-check">
+                    <input @onchange="@(()=> registerModel.Gender="Erkek")" class="form-check-input" type="radio" name="flexRadioDefault" />
+                    <label class="form-check-label" for="flexRadioDefault">Erkek</label>
+                </div>
+                <div class="form-check">
+                    <input @onchange="@(()=> registerModel.Gender="Kadın")" class="form-check-input" type="radio" name="flexRadioDefault" />
+                    <label class="form-check-label" for="flexRadioDefault">Kadın</label>
+                </div>
+            </div>
+        </div>
+        <ValidationMessage For="@(()=> registerModel.Gender)" />
+    </div>
+
+    <div class="form-group">
+        <label>Email Adresi</label>
+        <input type="text" @bind-value="@registerModel.Email" class="form-control" placeholder="Email adresinizi giriniz.." />
+        <ValidationMessage For="@(()=> registerModel.Email)" />
+    </div>
+
+    <div class="form-group mt-2">
+        <label>Şifre</label>
+        <input type="password" @bind-value="@registerModel.Password" class="form-control" placeholder="Şifrenizi giriniz.." />
+        <ValidationMessage For="@(()=> registerModel.Password)" />
+    </div>
+
+    <div class="mt-2 text-end">
+        <NavLink class="nav-link" href="/">
+            <span>Hesabınız var ise giriş yapmak için tıklayınız..</span>
+        </NavLink>
+    </div>
+
+    <div class="text-center mt-2">
+
+        <button class="btn btn-primary" type="submit">
+            <span class="@_spinnerClass" role="status" aria-hidden="true"></span>
+            Kayıt Ol
+        </button>
+    </div>
+
+</EditForm>
+@code {
+    RegisterModel registerModel = new();
+
+    private string _spinnerClass = "";
+
+    private string _userAvatar = "images/user.png";
+
+    private string _imageBase64Data;
+
+
+
+    private async void Submit()
+    {
+     
+        _spinnerClass = "spinner-border spinner-border-sm";
+
+        if (!string.IsNullOrWhiteSpace(_imageBase64Data))
+        {
+            registerModel.UserAvatar = _imageBase64Data;
+        }
+
+        var response = await _appService.RegisterUser(registerModel);
+
+        if (response.IsSuccess)
+        {
+            await App.Current.MainPage.DisplayAlert("Başarılı", "Başarıyla kayıt oldunuz..", "Çık");
+        }
+        else
+        {
+            await App.Current.MainPage.DisplayAlert("Hata", response.ErrorMessage, "Çık");
+        }
+
+        _spinnerClass = "";
+        this.StateHasChanged();
+    }
+
+    private async void DisplayAction()
+    {
+        string response =await App.Current.MainPage.DisplayActionSheet("Fotoğraf Ekle","Çık",null,"Kamera","Galery");
+        if (response=="Kamera")
+        {
+            if (MediaPicker.Default.IsCaptureSupported)
+            {
+                var photo = await MediaPicker.Default.CapturePhotoAsync();
+                if (photo != null)
+                {
+                    byte[] imageBytes;
+                    var newFile = Path.Combine(FileSystem.CacheDirectory, photo.FileName);
+                    var stream = await photo.OpenReadAsync();
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        stream.CopyTo(ms);
+                        imageBytes = ms.ToArray();
+                    }
+                    _imageBase64Data = Convert.ToBase64String(imageBytes);
+                    _userAvatar = string.Format("data:image/png;base64,{0}", _imageBase64Data);
+                    this.StateHasChanged();
+                }
+            }
+        }
+        else if (response == "Galery")
+        {
+            var photo = await MediaPicker.Default.PickPhotoAsync();
+            if (photo!=null)
+            {
+                byte[] imageBytes;
+                var newFile = Path.Combine(FileSystem.CacheDirectory, photo.FileName);
+                var stream = await photo.OpenReadAsync();
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    stream.CopyTo(ms);
+                    imageBytes = ms.ToArray();
+                }
+                _imageBase64Data = Convert.ToBase64String(imageBytes);
+                _userAvatar = string.Format("data:image/png;base64,{0}", _imageBase64Data);
+                this.StateHasChanged();
+            }
+        }
+    }
+
+
+    //private void SetGender(string gender)
+    //{
+    //    registerModel.Gender = gender;
+    //}
+}

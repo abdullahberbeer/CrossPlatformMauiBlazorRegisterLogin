@@ -1,0 +1,53 @@
+﻿@page "/";
+@using MauiApp1.Models;
+@using MauiApp1.Services;
+@using Newtonsoft.Json;
+@using System.IdentityModel.Tokens.Jwt;
+@inject NavigationManager _navigationManager;
+@inject IAppService _appService;
+
+<h3>AppLaunch</h3>
+
+Loading...
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var userDetail = await SecureStorage.GetAsync(nameof(Setting.UserDetail));
+
+        if (!string.IsNullOrWhiteSpace(userDetail))
+        {
+            var userDetails = JsonConvert.DeserializeObject<UserDetail>(userDetail);
+            var handler = new JwtSecurityTokenHandler();
+            var jsontoken = handler.ReadToken(userDetails.AccessToken) as JwtSecurityToken;
+            Setting.UserDetail = userDetails;
+            if (jsontoken.ValidTo < DateTime.UtcNow)
+            {
+                bool isTokenRefreshed = await _appService.RefreshToken();
+
+               
+
+                if (isTokenRefreshed )
+                {
+                   
+                    _navigationManager.NavigateTo("/dashboard");
+                }
+                else
+                {
+                    _navigationManager.NavigateTo("/login");
+                }
+                
+            }
+            else
+            {
+               
+                _navigationManager.NavigateTo("/dashboard");
+            }
+
+        }
+        else
+        {
+            _navigationManager.NavigateTo("/login");
+        }
+    }
+}
